@@ -3,73 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音乐播放</title>
+    <title>正在播放鸡毛信</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; margin: 0; background-color: #121212; color: white;
+        body {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* 防止放大控件导致滚动条出现 */
         }
-        .container { text-align: center; width: 80%; }
-        .music-card { 
-            background: #1e1e1e; padding: 30px; border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+
+        /* 标题样式 */
+        h2 {
+            margin-bottom: 30px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
-        h2 { font-size: 1.2rem; margin-bottom: 20px; color: #1DB954; }
-        audio { width: 100%; margin-top: 20px; }
-        /* 微信专用提示按钮 */
-        #play-btn {
-            background-color: #1DB954; color: white; border: none;
-            padding: 15px 40px; border-radius: 30px; font-size: 18px;
-            font-weight: bold; cursor: pointer; display: block; margin: 20px auto;
+
+        /* 唱片容器 */
+        .record-container {
+            width: 250px;
+            height: 250px;
+            margin-bottom: 50px;
+            position: relative;
+            cursor: pointer; /* 让用户知道这里可以点 */
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* 默认动画：旋转，但初始状态是暂停的 */
+            animation: rotateRecord 5s linear infinite;
+            animation-play-state: paused; 
+            transition: transform 0.2s;
         }
+
+        /* 点击时的按压效果 */
+        .record-container:active {
+            transform: scale(0.95);
+        }
+
+        /* 黑胶唱片纹理绘制 (纯CSS) */
+        .vinyl {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle, #2c3e50 5%, transparent 5%), /* 中心孔 */
+                radial-gradient(circle, #e74c3c 30%, transparent 30%), /* 红色标签 */
+                repeating-radial-gradient(#111 0, #111 2px, #222 3px, #222 4px); /* 黑色纹理 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 唱片中间的文字或图标 */
+        .vinyl::after {
+            content: "♪";
+            font-size: 40px;
+            color: white;
+            position: absolute;
+        }
+
+        /* 旋转关键帧 */
+        @keyframes rotateRecord {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 播放时的状态类 */
+        .playing {
+            animation-play-state: running;
+        }
+
+        /* 音频控件放大 */
+        audio {
+            transform: scale(1.8); /* 放大接近2倍 */
+            transform-origin: center top;
+            outline: none;
+            width: 80%;
+            max-width: 300px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="music-card">
-            <h2>🎵 正在为您播放</h2>
-            
-            <button id="play-btn">点击播放音乐</button>
+    <h2>正在播放鸡毛信</h2>
 
-            <audio id="bgMusic" controls loop>
-                <source src="jimaoxin.mp3" type="audio/mpeg">
-                您的浏览器不支持音频播放。
-            </audio>
-        </div>
+    <div class="record-container" id="recordDisk">
+        <div class="vinyl"></div>
     </div>
+
+    <audio id="bgMusic" controls>
+        <source src="music.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
 
     <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
     <script>
         const audio = document.getElementById('bgMusic');
-        const btn = document.getElementById('play-btn');
+        const record = document.getElementById('recordDisk');
 
-        // 1. 手动点击逻辑（最可靠）
-        btn.addEventListener('click', function() {
-            audio.play();
-            btn.style.display = 'none'; // 点击后隐藏按钮
+        // 1. 核心逻辑：监听播放状态来控制动画
+        audio.addEventListener('play', () => {
+            record.classList.add('playing');
         });
 
-        // 2. 微信环境尝试自动播放
-        function autoPlayAudio() {
-            if (typeof WeixinJSBridge !== "undefined") {
-                WeixinJSBridge.invoke('getNetworkType', {}, function (e) {
-                    audio.play();
-                });
-            }
-        }
+        audio.addEventListener('pause', () => {
+            record.classList.remove('playing');
+        });
 
-        // 监听微信 JSBridge 加载
-        document.addEventListener("WeixinJSBridgeReady", function () {
-            autoPlayAudio();
-        }, false);
-
-        // 针对某些 iOS 设备的兼容
-        document.addEventListener('touchstart', function() {
-            // 用户只要触摸屏幕任何地方就开始播放，然后移除监听
+        // 2. 交互逻辑：点击唱片也能播放/暂停
+        record.addEventListener('click', () => {
             if (audio.paused) {
                 audio.play();
+            } else {
+                audio.pause();
+            }
+        });
+
+        // 3. 微信环境自动播放尝试
+        document.addEventListener("WeixinJSBridgeReady", function () {
+            audio.play();
+        }, false);
+
+        // 4. 触摸屏幕任意位置尝试播放 (iOS Hack)
+        // 既然没有按钮了，保留这个逻辑防止用户还没点控件时无法自动播放
+        document.body.addEventListener('touchstart', function() {
+            if (audio.paused && audio.currentTime === 0) {
+               // 注意：为了不打扰用户，这里可以不强制play，
+               // 但为了兼容性，通常保留一次触发
             }
         }, { once: true });
     </script>
